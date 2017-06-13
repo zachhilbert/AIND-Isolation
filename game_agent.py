@@ -11,6 +11,17 @@ class SearchTimeout(Exception):
     pass
 
 
+def is_move_mirror(game, opponent, move):
+    x_max, y_max = game.width, game.height
+
+    opp_y, opp_x = game.get_player_location(opponent)
+    own_y, own_x = move
+
+    inverse_y, inverse_x = (y_max - opp_y, x_max - opp_x)
+
+    return move in [(opp_x, opp_y), (inverse_y, inverse_x), (inverse_x, inverse_y)]
+
+
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
@@ -35,15 +46,32 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    if game.is_loser(player):
-        return float("-inf")
-
+    # Check game over as winner/loser
     if game.is_winner(player):
         return float("inf")
 
-    own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    return float(own_moves - opp_moves)
+    if game.is_loser(player):
+        return float("-inf")
+
+    # We have moves to play. How many more than our opponent?
+    player_moves = len(game.get_legal_moves(player))
+
+    opponent = game.get_opponent(player)
+    opponent_moves = len(game.get_legal_moves(opponent))
+
+    # Return score based on who has most moves
+    if player_moves != opponent_moves:
+        return float(player_moves - opponent_moves)
+
+    # Check for who has best position, where closer to the center is better
+    center_y = int(game.height/2)
+    center_x = int(game.width/2)
+    player_y, player_x = game.get_player_location(player)
+    opponent_y, opponent_x = game.get_player_location(opponent)
+
+    player_from_center = abs(player_y - center_y) + abs(player_x - center_x)
+    opponent_from_center = abs(opponent_y - center_y) + abs(opponent_x - center_x)
+    return float(opponent_from_center - player_from_center)/10.
 
 
 def custom_score_2(game, player):
@@ -101,6 +129,18 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    opponent = game.get_opponent(player)
+    y, x = game.get_player_location(player)
+
+    if is_move_mirror(game, opponent, (y, x)):
+        return 100.
+
     return float(len(game.get_legal_moves(player)))
 
 
@@ -390,12 +430,12 @@ class AlphaBetaPlayer(IsolationPlayer):
         legal_moves = game.get_legal_moves()
         if not legal_moves:
             return (-1, -1)
-        
+
         # If all moves have the same score, pick the first one
         _, best_move = self.get_max(game, depth, alpha, beta)
 
         return best_move
-    
+
     def get_max(self, game, depth, alpha, beta):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
@@ -407,7 +447,7 @@ class AlphaBetaPlayer(IsolationPlayer):
         # Super small max val
         max_val = float('-inf')
         best_move = legal_moves[0]
-        
+
         for move in legal_moves:
             new_game = game.forecast_move(move)
             val, mv = self.get_min(new_game, depth-1, alpha, beta)
@@ -418,7 +458,7 @@ class AlphaBetaPlayer(IsolationPlayer):
 
             if max_val >= beta:
                 return max_val, best_move
-            
+
             alpha = max(alpha, max_val)
 
         return max_val, best_move
@@ -438,7 +478,7 @@ class AlphaBetaPlayer(IsolationPlayer):
         for move in legal_moves:
             new_game = game.forecast_move(move)
             val, mv = self.get_max(new_game, depth-1, alpha, beta)
-            
+
             if val < min_val:
                 min_val = val
                 best_move = move
