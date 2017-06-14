@@ -21,7 +21,7 @@ class IsolationTest(unittest.TestCase):
         self.player2 = "Player2"
         self.game = isolation.Board(self.player1, self.player2)
 
-    def xtest_minimax(self):
+    def test_minimax(self):
         player1 = game_agent.MinimaxPlayer(name='Player 1')
         player2 = game_agent.MinimaxPlayer(name='Player 2')
         #player2 = sample_players.GreedyPlayer()
@@ -56,7 +56,7 @@ class IsolationTest(unittest.TestCase):
         print(game.to_string())
         print("Move history:\n{!s}".format(history))
 
-    def xtest_alphabeta(self):
+    def test_alphabeta(self):
         player1 = game_agent.AlphaBetaPlayer(name='Player 1')
         player2 = game_agent.AlphaBetaPlayer(name='Player 2')
         #player2 = sample_players.GreedyPlayer()

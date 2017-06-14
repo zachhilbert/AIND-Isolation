@@ -22,6 +22,32 @@ def is_move_mirror(game, opponent, move):
     return move in [(opp_x, opp_y), (inverse_y, inverse_x), (inverse_x, inverse_y)]
 
 
+def is_game_late(game):
+    board_size = game.width * game.height * 1.
+    return (len(game.get_blank_spaces())/board_size) > .8
+
+
+def is_board_segmented(game):
+    h, w = game.height, game.width
+
+    # Check for horizontal segmentation
+    blank_spaces = game.get_blank_spaces()
+    segmented = False
+    x_blank = True
+
+    for y in range(h):
+        any_blank = any([(y,x) for x in range(w) if (y,x) in blank_spaces])
+        if not any_blank:
+            return True
+
+    for x in range(w):
+        any_blank = any([(y,x) for y in range(h) if (y,x) in blank_spaces])
+        if not any_blank:
+            return True
+
+    return False
+
+
 def custom_score(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
@@ -71,7 +97,7 @@ def custom_score(game, player):
 
     player_from_center = abs(player_y - center_y) + abs(player_x - center_x)
     opponent_from_center = abs(opponent_y - center_y) + abs(opponent_x - center_x)
-    return float(opponent_from_center - player_from_center)/10.
+    return float(opponent_from_center - player_from_center)
 
 
 def custom_score_2(game, player):
@@ -102,10 +128,9 @@ def custom_score_2(game, player):
     if game.is_winner(player):
         return float("inf")
 
-    own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
-    return float(own_moves - opp_moves)
-
+    w, h = game.width / 2., game.height / 2.
+    y, x = game.get_player_location(player)
+    return float((h - y)**2 + (w - x)**2)
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -140,6 +165,11 @@ def custom_score_3(game, player):
 
     if is_move_mirror(game, opponent, (y, x)):
         return 100.
+
+    if is_game_late(game) or is_board_segmented(game):
+        own_moves = len(game.get_legal_moves(player))
+        opp_moves = len(game.get_legal_moves(opponent))
+        return float(own_moves - opp_moves)
 
     return float(len(game.get_legal_moves(player)))
 
