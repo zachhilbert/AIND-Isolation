@@ -72,6 +72,10 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
+    # This heuristic calculates the distance for own and opp from the center
+    # and produces a higher score if own is closer to center than opp
+    # and a lower score if own is further from center than opp
+
     # Check game over as winner/loser
     if game.is_winner(player):
         return float("inf")
@@ -90,14 +94,13 @@ def custom_score(game, player):
         return float(player_moves - opponent_moves)
 
     # Check for who has best position, where closer to the center is better
-    center_y = int(game.height/2)
-    center_x = int(game.width/2)
-    player_y, player_x = game.get_player_location(player)
-    opponent_y, opponent_x = game.get_player_location(opponent)
+    h, w = game.height/2., game.width/2.
+    own_y, own_x = game.get_player_location(player)
+    opp_y, opp_x = game.get_player_location(opponent)
 
-    player_from_center = abs(player_y - center_y) + abs(player_x - center_x)
-    opponent_from_center = abs(opponent_y - center_y) + abs(opponent_x - center_x)
-    return float(opponent_from_center - player_from_center)
+    own_from_center = (own_y - h)**2 + (own_x - w)**2
+    opp_from_center = (opp_y - h)**2 + (opp_x - w)**2
+    return float(opp_from_center - own_from_center)
 
 
 def custom_score_2(game, player):
@@ -122,15 +125,28 @@ def custom_score_2(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
+    # Produces highest score when a move is a mirror of the opp move
+    # If move isn't a mirror, but the game is late or board is segmented,
+    # we calculate difference in available moves against opp
+    # Lastly, if none of these are true, we provide a move count score
     if game.is_loser(player):
         return float("-inf")
 
     if game.is_winner(player):
         return float("inf")
 
-    w, h = game.width / 2., game.height / 2.
+    opponent = game.get_opponent(player)
     y, x = game.get_player_location(player)
-    return float((h - y)**2 + (w - x)**2)
+
+    if is_move_mirror(game, opponent, (y, x)):
+        return 100.
+
+    if is_game_late(game) or is_board_segmented(game):
+        own_moves = len(game.get_legal_moves(player))
+        opp_moves = len(game.get_legal_moves(opponent))
+        return float(own_moves - opp_moves)
+
+    return float(len(game.get_legal_moves(player)))
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
@@ -154,24 +170,16 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
+    # Calculates distance from the center
     if game.is_loser(player):
         return float("-inf")
 
     if game.is_winner(player):
         return float("inf")
 
-    opponent = game.get_opponent(player)
+    w, h = game.width / 2., game.height / 2.
     y, x = game.get_player_location(player)
-
-    if is_move_mirror(game, opponent, (y, x)):
-        return 100.
-
-    if is_game_late(game) or is_board_segmented(game):
-        own_moves = len(game.get_legal_moves(player))
-        opp_moves = len(game.get_legal_moves(opponent))
-        return float(own_moves - opp_moves)
-
-    return float(len(game.get_legal_moves(player)))
+    return float((h - y)**2 + (w - x)**2)
 
 
 class IsolationPlayer:
